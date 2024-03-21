@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import RegexValidator
 from django.db import models
+
+from .constants import MAX_LENGHT_FIELD, TEXT_LENGTH
 
 
 class User(AbstractUser):
@@ -11,31 +14,55 @@ class User(AbstractUser):
         (MODERATOR_ROLE, 'Модератор'),
         (ADMIN_ROLE, 'Администратор')
     )
-    username = models.CharField('Username', max_length=50, unique=True)
-    email = models.EmailField('Электронная почта', max_length=50, unique=True)
-    confirmation_code = models.CharField('Код подтверждения', max_length=6)
+    username = models.CharField(
+        'Имя пользователя',
+        max_length=MAX_LENGHT_FIELD,
+        unique=True,
+        validators=[
+            RegexValidator(
+                regex=r"^[\w.@+-]+$",
+                message=('Имя пользователя содержит недопустимый символ'),
+            )
+        ],
+    )
+    first_name = models.CharField(
+        'Имя',
+        max_length=MAX_LENGHT_FIELD,
+        blank=True,
+    )
+    last_name = models.CharField(
+        'Фамилия',
+        max_length=MAX_LENGHT_FIELD,
+        blank=True
+    )
+    email = models.EmailField(
+        'Электронная почта',
+        max_length=MAX_LENGHT_FIELD,
+        unique=True
+    )
     role = models.CharField(
         'Пользовательская роль',
         choices=ROLE_CHOICES,
         default=USER_ROLE,
-        max_length=50,
+        max_length=MAX_LENGHT_FIELD,
+        blank=True
+    )
+    bio = models.TextField(
+        'Биография',
+        blank=True
     )
 
     class Meta:
-        ordering = ('username', )
-        verbose_name = 'пользователь'
+        verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        ordering = ('id',)
 
     def __str__(self):
-        return self.username
-
-    @property
-    def is_user(self):
-        return self.role == User.USER_ROLE
+        return self.username[:TEXT_LENGTH]
 
     @property
     def is_moderator(self):
-        return self.role == User.MODERATOR_ROLE
+        return self.role == self.MODERATOR_ROLE
 
     @property
     def is_admin(self):
