@@ -3,26 +3,38 @@ from django.contrib.auth.tokens import default_token_generator
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import (decorators, filters, pagination, permissions,
-                            response, status, views, viewsets)
+from rest_framework import (decorators, filters, mixins, pagination,
+                            permissions, response, status, viewsets)
+from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from reviews.constants import ME_URL
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
-from .mixins import CreateListDestroyViewSet
 from .permissions import (IsAdmin, IsAdminOrReadOnly,
                           IsAuthorOrModeratorsOrReadOnly)
-from .serializers import (AdminUsersSerializer, UserSerializer,
-                          CategorySerializer, CommentSerializer,
-                          GenreSerializer, LoginSerializer, ReviewSerializer,
-                          TitleEditSerializer, TitleViewSerializer,
-                          TokenSerializer)
+from .serializers import (AdminUsersSerializer, CategorySerializer,
+                          CommentSerializer, GenreSerializer, LoginSerializer,
+                          ReviewSerializer, TitleEditSerializer,
+                          TitleViewSerializer, TokenSerializer, UserSerializer)
 from .utils import send_confirmation_code
 
 User = get_user_model()
 
 
-class CategoryViewSet(CreateListDestroyViewSet):
+class CategoryGenreBaseViewSet(mixins.CreateModelMixin,
+                               mixins.ListModelMixin,
+                               mixins.DestroyModelMixin,
+                               viewsets.GenericViewSet):
+    """GET, POST и DELETE запросы."""
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
+    pagination_class = pagination.LimitOffsetPagination
+
+
+class CategoryViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для работы с категориями.
 
@@ -37,7 +49,7 @@ class CategoryViewSet(CreateListDestroyViewSet):
     serializer_class = CategorySerializer
 
 
-class GenreViewSet(CreateListDestroyViewSet):
+class GenreViewSet(CategoryGenreBaseViewSet):
     """
     Вьюсет для работы с жанрами.
 
@@ -68,7 +80,8 @@ class TitleViewSet(viewsets.ModelViewSet):
     - pagination_class: Пагинация
     """
 
-    queryset = Title.objects.annotate(rating=Avg('reviews__score'))
+    queryset = Title.objects.annotate(rating=Avg(
+        'reviews__score')).all().order_by('name',)
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
@@ -111,88 +124,74 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @decorators.action(methods=('GET', 'PATCH'),
                        permission_classes=(permissions.IsAuthenticated,),
-                       url_path='me',
+                       url_path=ME_URL,
                        detail=False,)
     def get_patch_user_info(self, request):
         """
         Получает или обновляет информацию о текущем пользователе.
         """
-        serializer = AdminUsersSerializer(request.user)
-        if request.method != 'PATCH':
-            return response.Response(
-                serializer.data, status=status.HTTP_200_OK)
-        serializer_class = self.get_serializer_class()
+        if request.user.is_admin:
+            serializer_class = AdminUsersSerializer
+        else:
+            serializer_class = UserSerializer
         serializer = serializer_class(
             request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return response.Response(serializer.data, status=status.HTTP_200_OK)
-
-    def get_serializer_class(self):
-        """
-        Определяет класс сериализатора в зависимости от текущего пользователя.
-        """
-        if self.request.user.is_admin:
-            return AdminUsersSerializer
-        return UserSerializer
-
-
-class ApiUserSignup(views.APIView):
-    """
-    API для получения JWT-токена аутентификации.
-
-    Позволяет пользователям получить JWT-токен через метод POST.
-
-    Methods:
-    - post: Обработчик POST запросов для получения JWT-токена.
-    """
-
-    def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        # Проверка, существует ли пользователь с таким же именем и почтой
-        if User.objects.filter(
-            username=request.data.get('username'),
-            email=request.data.get('email')
-        ).exists():
-            # Если да, отправить код подтверждения еще раз
-            send_confirmation_code(request)
-            return response.Response(request.data, status=status.HTTP_200_OK)
-        # Если пользователь не существует, продолжить процесс регистрации
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        send_confirmation_code(request)
+        if request.method == 'PATCH':
+            serializer.save()
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetApiToken(views.APIView):
+@decorators.api_view(["POST"])
+def api_sign_up(request):
     """
-    API для получения JWT-токена аутентификации.
+    Регистрация пользователя.
+    Создает нового пользователя на основе предоставленных данных.
+    Отправляет код подтверждения на указанный email пользователя.
+    Args:
+    - request: Объект запроса.
+    Returns:
+    - response.Response: Объект ответа, содержащий
+    данные о регистрации пользователя.
 
-    Позволяет пользователям получить JWT-токен через метод POST.
-
-    Methods:
-    - post: Обработчик POST запросов для получения JWT-токена.
+    Raises:
+    - ValidationError: Если данные в запросе неверные.
     """
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    user, _ = User.objects.get_or_create(
+        username=data.get('username'),
+        email=data.get('email')
+    )
+    send_confirmation_code(user)
+    return response.Response(serializer.data, status=status.HTTP_200_OK)
 
-    def post(self, request):
-        serializer = TokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+
+@decorators.api_view(["POST"])
+def get_api_token(request):
+    """
+    Получение API токена.
+    Проверяет подтверждающий код пользователя и выдает
+    ему API токен для аутентификации.
+    Args:
+    - request: Объект запроса.
+    Returns:
+    - response.Response: Объект ответа, содержащий API токен.
+    Raises:
+    - ValidationError: Если указан неверный код подтверждения.
+    """
+    serializer = TokenSerializer(data=request.data)
+    if serializer.is_valid():
         data = serializer.validated_data
         user = get_object_or_404(User, username=data.get('username'))
-        # Проверка соответствия переданного кода подтверждения
-        # коду подтверждения, отправленному пользователю
         if default_token_generator.check_token(
             user, data.get('confirmation_code')
         ):
-            # Создание JWT-токена для пользователя
             api_token = RefreshToken.for_user(user).access_token
-            # Возврат ответа с JWT-токеном
             return response.Response({'token': str(api_token)},
                                      status=status.HTTP_200_OK)
-        # Возврат сообщения с ошибкой, если код подтверждения неверный
-        return response.Response(
-            {'confirmation_code': 'Указан неверный код доступа к API.'},
-            status=status.HTTP_400_BAD_REQUEST)
+    raise ValidationError('Указан неверный код подтверждения')
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

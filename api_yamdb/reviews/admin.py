@@ -8,6 +8,12 @@ User = get_user_model()
 admin.site.empty_value_display = 'Не задано'
 
 
+class TitleGenreInline(admin.TabularInline):
+    """Встроенный класс для отображения связанных объектов Genre и Title."""
+    model = Title.genre.through
+    extra = 0
+
+
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
     """Настройка административного интерфейса для пользователей."""
@@ -29,6 +35,7 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Genre)
 class GenreAdmin(admin.ModelAdmin):
     """Настройки административного интерфейса для жанров."""
+    inlines = [TitleGenreInline]
     list_display = ('pk', 'name', 'slug')
     list_filter = ('name',)
     search_fields = ('name',)
@@ -37,6 +44,7 @@ class GenreAdmin(admin.ModelAdmin):
 @admin.register(Title)
 class TitleAdmin(admin.ModelAdmin):
     """Настройки административного интерфейса для произведений."""
+    inlines = [TitleGenreInline]
     list_display = ('pk', 'name', 'year', 'description', 'category')
     list_filter = ('name',)
     search_fields = ('name', 'year', 'category')

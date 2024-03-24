@@ -2,25 +2,11 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
+from .constants import (ADMIN, MAX_LENGTH_EMAIL, MAX_LENGTH_NAME,
+                        MAX_LENGTH_ROLE, MAX_LENGTH_SLUG, MAX_LENGTH_USERNAME,
+                        MAX_SCORE, MIN_SCORE, MODERATOR, ROLE_CHOICES,
+                        TEXT_LENGTH, USER)
 from .validators import validate_username, validate_year
-
-USER = 'user'
-MODERATOR = 'moderator'
-ADMIN = 'admin'
-ROLE_CHOICES = (
-    (USER, 'пользователь'),
-    (MODERATOR, 'модератор'),
-    (ADMIN, 'администратор')
-)
-
-TEXT_LENGTH = 50
-MAX_LENGTH_USERNAME = 150
-MAX_LENGTH_EMAIL = 254
-MAX_LENGTH_ROLE = max(len(role[0]) for role in ROLE_CHOICES)
-MAX_LENGTH_NAME = 256
-MAX_LENGTH_SLUG = 50
-MIN_SCORE = 1
-MAX_SCORE = 10
 
 
 class User(AbstractUser):
@@ -63,10 +49,13 @@ class User(AbstractUser):
     )
 
     class Meta:
-        unique_together = ('username', 'email')
         ordering = ('username',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
+        constraints = (
+            models.UniqueConstraint(
+                fields=('username', 'email'), name='unique_user'),
+        )
 
     @property
     def is_admin(self):

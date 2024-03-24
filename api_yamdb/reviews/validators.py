@@ -3,7 +3,9 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-BANNED_USERNAME = ('me',)
+from .constants import ME_URL
+
+BANNED_USERNAME = (ME_URL,)
 
 
 def validate_username(username):

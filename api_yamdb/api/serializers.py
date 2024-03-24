@@ -1,25 +1,13 @@
 from django.contrib.auth import get_user_model
-from django.utils import timezone
+from django.db.models import Q
 from rest_framework import serializers
 
+from reviews.constants import (MAX_LENGTH_EMAIL, MAX_LENGTH_USERNAME,
+                               MAX_LENGTH_CONFIRMATION_CODE)
 from reviews.models import Category, Comment, Genre, Review, Title
-from reviews.validators import BANNED_USERNAME
+from reviews.validators import validate_username, validate_year
 
 User = get_user_model()
-
-
-class AdminUsersSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = (
-            'username',
-            'email',
-            'first_name',
-            'last_name',
-            'bio',
-            'role',
-        )
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -37,27 +25,47 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = ('role',)
 
 
-class TokenSerializer(serializers.ModelSerializer):
+class AdminUsersSerializer(UserSerializer):
+
+    class Meta(UserSerializer.Meta):
+        read_only_fields = ()
+
+
+class TokenSerializer(serializers.Serializer):
 
     username = serializers.CharField(required=True)
-    confirmation_code = serializers.CharField(required=True)
-
-    class Meta:
-        model = User
-        fields = ('username', 'confirmation_code')
-
-
-class LoginSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = User
-        fields = ('username', 'email')
+    confirmation_code = serializers.CharField(
+        required=True, max_length=MAX_LENGTH_CONFIRMATION_CODE)
 
     def validate_username(self, username):
-        if username in BANNED_USERNAME:
-            raise serializers.ValidationError(
-                f'Имя пользователя не может быть {username}')
-        return username
+        return validate_username(username)
+
+
+class LoginSerializer(serializers.Serializer):
+
+    username = serializers.SlugField(
+        max_length=MAX_LENGTH_USERNAME,
+        required=True
+    )
+    email = serializers.EmailField(
+        max_length=MAX_LENGTH_EMAIL,
+        required=True
+    )
+
+    def validate_username(self, username):
+        return validate_username(username)
+
+    def validate(self, data):
+        username = data.get('username')
+        email = data.get('email')
+        user = User.objects.filter(
+            Q(username=username) | Q(email=email)).first()
+        if user:
+            if user.email != email:
+                raise serializers.ValidationError('Неверный Email')
+            elif user.username != username:
+                raise serializers.ValidationError('Username уже занят')
+        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -76,9 +84,9 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class TitleViewSerializer(serializers.ModelSerializer):
 
-    category = CategorySerializer(read_only=True,)
-    genre = GenreSerializer(many=True, read_only=True)
-    rating = serializers.IntegerField(read_only=True, default=0)
+    category = CategorySerializer()
+    genre = GenreSerializer(many=True)
+    rating = serializers.IntegerField(default=0)
 
     class Meta:
         model = Title
@@ -91,6 +99,7 @@ class TitleViewSerializer(serializers.ModelSerializer):
             'genre',
             'category'
         )
+        read_only_fields = fields
 
 
 class TitleEditSerializer(serializers.ModelSerializer):
@@ -99,16 +108,14 @@ class TitleEditSerializer(serializers.ModelSerializer):
         queryset=Category.objects.all(), slug_field='slug')
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(), slug_field='slug', many=True)
+    year = serializers.IntegerField(validators=(validate_year,))
 
     class Meta:
         model = Title
         fields = ('id', 'name', 'year', 'description', 'genre', 'category')
 
     def validate_year(self, year):
-        if year > timezone.now().year:
-            serializers.ValidationError(
-                'Год не может быть больше текущего года.')
-        return year
+        return validate_year(year)
 
 
 class CommentSerializer(serializers.ModelSerializer):
