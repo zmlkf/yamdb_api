@@ -3,7 +3,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title
-from user.validators import BANNED_USERNAME
+from reviews.validators import BANNED_USERNAME
 
 User = get_user_model()
 
