@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 
-from reviews.models import Category, Comment, Genre, GenreTitle, Review, Title
+from reviews.models import Category, Comment, Genre, Review, Title
 
 User = get_user_model()
 
@@ -40,16 +40,6 @@ class TitleAdmin(admin.ModelAdmin):
     list_display = ('pk', 'name', 'year', 'description', 'category')
     list_filter = ('name',)
     search_fields = ('name', 'year', 'category')
-
-
-@admin.register(GenreTitle)
-class GenreTitleAdmin(admin.ModelAdmin):
-    """Настройки административного интерфейса
-    для соответствия жанров и произведений.
-    """
-    list_display = ('pk', 'genre', 'title')
-    list_filter = ('genre',)
-    search_fields = ('title',)
 
 
 @admin.register(Review)
