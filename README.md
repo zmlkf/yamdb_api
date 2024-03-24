@@ -72,8 +72,9 @@ python manage.py runserver
 9. **djangorestframework_simplejwt** (версия 5.2.2): Это простое расширение для Django REST Framework, которое предоставляет поддержку аутентификации с использованием JSON Web Token (JWT). Оно упрощает процесс аутентификации и авторизации в веб-приложениях, использующих Django REST Framework.
 
 # Ресурсы API
+[Документация](http://127.0.0.1:8000/redoc/)
 ```bash
-[Документация](http://127.0.0.1:8000/redoc/) - Содержит документацию для API YaMDb. В документации описано, как должен работаь API. Документация представлена в формате Redoc.
+Содержит документацию для API YaMDb. В документации описано, как должен работаь API. Документация представлена в формате Redoc.
 ```
 # Формат данных
 ### API возвращает данные в формате JSON.
@@ -90,5 +91,7 @@ python manage.py runserver
 ## Автор
 Авторы: 
 Roman Zemliakov [GitHub](https://github.com/zmlkf)
+
 Дари Шарапова [GitHub](https://github.com/sh-dar)
+
 Антон Серебряков [GitHub](https://github.com/AntonSerebryakov)
