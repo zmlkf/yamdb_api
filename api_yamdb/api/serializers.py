@@ -1,16 +1,15 @@
 from django.contrib.auth import get_user_model
-from django.db.models import Q
 from rest_framework import serializers
+from reviews.constants import (MAX_LENGTH_CONFIRMATION_CODE, MAX_LENGTH_EMAIL,
+                               MAX_LENGTH_USERNAME)
 
-from reviews.constants import (MAX_LENGTH_EMAIL, MAX_LENGTH_USERNAME,
-                               MAX_LENGTH_CONFIRMATION_CODE)
 from reviews.models import Category, Comment, Genre, Review, Title
 from reviews.validators import validate_username, validate_year
 
 User = get_user_model()
 
 
-class UserSerializer(serializers.ModelSerializer):
+class AdminUsersSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
@@ -22,18 +21,18 @@ class UserSerializer(serializers.ModelSerializer):
             'bio',
             'role',
         )
-        read_only_fields = ('role',)
 
 
-class AdminUsersSerializer(UserSerializer):
+class UserSerializer(AdminUsersSerializer):
 
-    class Meta(UserSerializer.Meta):
-        read_only_fields = ()
+    class Meta(AdminUsersSerializer.Meta):
+        read_only_fields = 'role',
 
 
 class TokenSerializer(serializers.Serializer):
 
-    username = serializers.CharField(required=True)
+    username = serializers.CharField(
+        required=True, max_length=MAX_LENGTH_USERNAME)
     confirmation_code = serializers.CharField(
         required=True, max_length=MAX_LENGTH_CONFIRMATION_CODE)
 
@@ -54,18 +53,6 @@ class LoginSerializer(serializers.Serializer):
 
     def validate_username(self, username):
         return validate_username(username)
-
-    def validate(self, data):
-        username = data.get('username')
-        email = data.get('email')
-        user = User.objects.filter(
-            Q(username=username) | Q(email=email)).first()
-        if user:
-            if user.email != email:
-                raise serializers.ValidationError('Неверный Email')
-            elif user.username != username:
-                raise serializers.ValidationError('Username уже занят')
-        return data
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -108,7 +95,6 @@ class TitleEditSerializer(serializers.ModelSerializer):
         queryset=Category.objects.all(), slug_field='slug')
     genre = serializers.SlugRelatedField(
         queryset=Genre.objects.all(), slug_field='slug', many=True)
-    year = serializers.IntegerField(validators=(validate_year,))
 
     class Meta:
         model = Title

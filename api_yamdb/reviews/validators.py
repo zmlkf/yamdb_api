@@ -3,17 +3,16 @@ import re
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from .constants import ME_URL
+from api_yamdb.settings import ME_URL
 
 BANNED_USERNAME = (ME_URL,)
 
 
 def validate_username(username):
-    if username.lower() in BANNED_USERNAME:
+    if username in BANNED_USERNAME:
         raise ValidationError(f'Недопустимое имя пользователя: "{username}".')
-    if not re.match(r'^[\w.@+-]+$', username):
-        invalid_chars = ''.join(
-            char for char in username if not re.match(r'[\w.@+-]', char))
+    invalid_chars = re.sub(r'[\w.@+-]', '', username)
+    if invalid_chars:
         raise ValidationError(f'Недопустимые символы: {invalid_chars}')
     return username
 

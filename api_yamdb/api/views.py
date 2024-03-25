@@ -1,5 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -8,7 +10,8 @@ from rest_framework import (decorators, filters, mixins, pagination,
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from reviews.constants import ME_URL
+
+from api_yamdb.settings import EMAIL_ADMIN, ME_URL
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
 from .permissions import (IsAdmin, IsAdminOrReadOnly,
@@ -17,7 +20,6 @@ from .serializers import (AdminUsersSerializer, CategorySerializer,
                           CommentSerializer, GenreSerializer, LoginSerializer,
                           ReviewSerializer, TitleEditSerializer,
                           TitleViewSerializer, TokenSerializer, UserSerializer)
-from .utils import send_confirmation_code
 
 User = get_user_model()
 
@@ -80,8 +82,11 @@ class TitleViewSet(viewsets.ModelViewSet):
     - pagination_class: Пагинация
     """
 
-    queryset = Title.objects.annotate(rating=Avg(
-        'reviews__score')).all().order_by('name',)
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')
+    ).order_by(
+        *Title._meta.ordering
+    )
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = TitleFilter
@@ -116,7 +121,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     queryset = User.objects.all()
     serializer_class = AdminUsersSerializer
-    permission_classes = (permissions.IsAuthenticated, IsAdmin,)
+    permission_classes = (IsAdmin,)
     lookup_field = 'username'
     filter_backends = (filters.SearchFilter,)
     search_fields = ('username', )
@@ -130,14 +135,12 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Получает или обновляет информацию о текущем пользователе.
         """
-        if request.user.is_admin:
-            serializer_class = AdminUsersSerializer
+        if request.method == 'GET':
+            serializer = UserSerializer(request.user)
         else:
-            serializer_class = UserSerializer
-        serializer = serializer_class(
-            request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        if request.method == 'PATCH':
+            serializer = UserSerializer(
+                request.user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
             serializer.save()
         return response.Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -160,11 +163,20 @@ def api_sign_up(request):
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     data = serializer.validated_data
-    user, _ = User.objects.get_or_create(
-        username=data.get('username'),
-        email=data.get('email')
+    try:
+        user, _ = User.objects.get_or_create(
+            username=data.get('username'),
+            email=data.get('email')
+        )
+    except IntegrityError:
+        raise ValidationError(
+            'Пользователь с таким username или email уже существует')
+    send_mail(
+        'Код для получения токена к API',
+        f'Код подтверждения {default_token_generator.make_token(user)}',
+        f'{EMAIL_ADMIN}',
+        [user.email],
     )
-    send_confirmation_code(user)
     return response.Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -182,15 +194,15 @@ def get_api_token(request):
     - ValidationError: Если указан неверный код подтверждения.
     """
     serializer = TokenSerializer(data=request.data)
-    if serializer.is_valid():
-        data = serializer.validated_data
-        user = get_object_or_404(User, username=data.get('username'))
-        if default_token_generator.check_token(
-            user, data.get('confirmation_code')
-        ):
-            api_token = RefreshToken.for_user(user).access_token
-            return response.Response({'token': str(api_token)},
-                                     status=status.HTTP_200_OK)
+    serializer.is_valid(raise_exception=True)
+    data = serializer.validated_data
+    user = get_object_or_404(User, username=data.get('username'))
+    if default_token_generator.check_token(
+        user, data.get('confirmation_code')
+    ):
+        api_token = RefreshToken.for_user(user).access_token
+        return response.Response(
+            {'token': str(api_token)}, status=status.HTTP_200_OK)
     raise ValidationError('Указан неверный код подтверждения')
 
 

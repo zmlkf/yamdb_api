@@ -3,9 +3,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from .constants import (ADMIN, MAX_LENGTH_EMAIL, MAX_LENGTH_NAME,
-                        MAX_LENGTH_ROLE, MAX_LENGTH_SLUG, MAX_LENGTH_USERNAME,
-                        MAX_SCORE, MIN_SCORE, MODERATOR, ROLE_CHOICES,
-                        TEXT_LENGTH, USER)
+                        MAX_LENGTH_SLUG, MAX_LENGTH_USERNAME, MAX_SCORE,
+                        MIN_SCORE, MODERATOR, ROLE_CHOICES, TEXT_LENGTH, USER)
 from .validators import validate_username, validate_year
 
 
@@ -28,7 +27,8 @@ class User(AbstractUser):
     username = models.CharField(
         'Имя пользователя',
         max_length=MAX_LENGTH_USERNAME,
-        help_text='Не более 150 символов. Буквы, цифры и @/./+/-/',
+        help_text=(f'Не более {MAX_LENGTH_USERNAME} символов. '
+                   f'Буквы, цифры и @/./+/-/'),
         unique=True,
         validators=(validate_username,),
     )
@@ -43,7 +43,7 @@ class User(AbstractUser):
     )
     role = models.CharField(
         'Роль',
-        max_length=MAX_LENGTH_ROLE,
+        max_length=max(len(role) for role, _ in ROLE_CHOICES),
         choices=ROLE_CHOICES,
         default=USER
     )
@@ -70,9 +70,9 @@ class User(AbstractUser):
         return self.username[:TEXT_LENGTH]
 
 
-class CategoryGenreAbstract(models.Model):
+class NamedEntity(models.Model):
     """
-    Абстрактный класс для жанров и категорий.
+    Абстрактный класс для именованных моделей.
 
     Поля:
     - name: Название
@@ -92,26 +92,26 @@ class CategoryGenreAbstract(models.Model):
         return self.name[:TEXT_LENGTH]
 
 
-class Genre(CategoryGenreAbstract):
+class Genre(NamedEntity):
     """
     Модель для жанров произведений.
 
-    Наследуется от абстрактного класса CategoryGenreAbstract.
+    Наследуется от абстрактного класса NamedEntity.
     """
 
-    class Meta:
+    class Meta(NamedEntity.Meta):
         verbose_name = 'жанр'
         verbose_name_plural = 'Жанры'
 
 
-class Category(CategoryGenreAbstract):
+class Category(NamedEntity):
     """
     Модель для категорий произведений.
 
-    Наследуется от абстрактного класса CategoryGenreAbstract.
+    Наследуется от абстрактного класса NamedEntity.
     """
 
-    class Meta:
+    class Meta(NamedEntity.Meta):
         verbose_name = 'категория'
         verbose_name_plural = 'Категории'
 
@@ -131,7 +131,7 @@ class Title(models.Model):
     year = models.SmallIntegerField(
         'Год публикации', validators=(validate_year,))
     description = models.TextField('Описание', blank=True, null=True)
-    genre = models.ManyToManyField(Genre, verbose_name='Жанры')
+    genre = models.ManyToManyField(Genre, verbose_name='Жанр')
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
@@ -149,9 +149,9 @@ class Title(models.Model):
         return self.name[:TEXT_LENGTH]
 
 
-class ReviewCommentAbstract(models.Model):
+class TextContent(models.Model):
     """
-    Абстрактный класс для отзывов и комментариев.
+    Абстрактный класс для текстовых моделей.
 
     Поля:
     - text: Текс
@@ -172,13 +172,14 @@ class ReviewCommentAbstract(models.Model):
 
     class Meta:
         abstract = True
+        default_related_name = "%(class)ss"
         ordering = ('pub_date',)
 
     def __str__(self):
         return self.text[:TEXT_LENGTH]
 
 
-class Review(ReviewCommentAbstract):
+class Review(TextContent):
     """
     Модель для отзывов к произведениям.
     Унаследована от абстрактного класса
@@ -197,8 +198,7 @@ class Review(ReviewCommentAbstract):
         validators=(MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE))
     )
 
-    class Meta:
-        default_related_name = 'reviews'
+    class Meta(TextContent.Meta):
         verbose_name = 'отзыв'
         verbose_name_plural = 'Отзывы'
         constraints = (
@@ -207,7 +207,7 @@ class Review(ReviewCommentAbstract):
         )
 
 
-class Comment(ReviewCommentAbstract):
+class Comment(TextContent):
     """
     Модель для представления комментариев к отзывам о произведениях.
     Унаследована от абстрактного класса
@@ -221,7 +221,6 @@ class Comment(ReviewCommentAbstract):
         verbose_name='Отзыв к произведению'
     )
 
-    class Meta:
-        default_related_name = 'comments'
+    class Meta(TextContent.Meta):
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
