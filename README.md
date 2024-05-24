@@ -1,97 +1,46 @@
-# Проект YaMDb
+**YAMDB API**
 
-API для социальной сети YaMDb, где пользователи могут оставлять отзывы на произведения и комментировать их.
+YaMDb is an API designed to collect and manage user reviews for various works of art and media. This API allows users to submit reviews, interact with comments, and manage categories and works. It serves as the backend infrastructure for a platform where users can share their opinions on books, movies, music, and more.
 
-## Установка
+**Technologies Used:**
+- Django: a high-level Python web framework for rapid development and clean, pragmatic design.
+- Django REST Framework: a powerful and flexible toolkit for building Web APIs in Django.
+- Django Filter: provides a simple way to filter down a queryset based on parameters a user provides.
+- Django Simple JWT: provides a JSON Web Token authentication backend for the Django REST Framework.
+- SQLite: a lightweight, serverless, relational database engine to store data locally.
 
-1. Клонировать репозиторий:
+**Features:**
+- Authentication: users can sign up, sign in, and receive JWT tokens for authentication.
+- User Management: admins can manage users, including viewing, creating, updating, and deleting user accounts.
+- Category and Genre Management: admins can manage categories and genres for movies.
+- Title Management: admins can manage movie titles, including adding, viewing, updating, and deleting movie entries.
+- Review Management: users can leave reviews for movies, and admins can manage these reviews.
+- Comment Management: users can leave comments on reviews, and admins can manage these comments.
 
-```bash
-git clone https://github.com/your_username/api_yamdb.git
-```
-2. Перейти в директорию проекта
-```bash
-cd api_yamdb
-```
-3. Установить и активировать виртуальное окружение
+**Getting Started:**
+1. Clone the repository: `git clone git@github.com:zmlkf/yamdb_api.git`
+2. Navigate to the project directory: `cd yamdb_api`
+3. Install dependencies: `pip install -r requirements.txt`
+4. Run migrations: `python manage.py migrate`
+5. Create a superuser: `python manage.py createsuperuser`
+6. Run the development server: `python manage.py runserver`
 
-```bash
-python -m venv venv
-```
-```bash
-source venv/bin/activate
-```
-```bash
-python -m pip install --upgrade pip
-```
-4. Установить зависимости
-```bash
-pip install -r requirements.txt
-```
-5. Перейти в директорию приложения
-```bash
-cd api_yamdb
-```
-6. Выполнить миграции
-```bash
-python manage.py migrate
-```
-7. Запустить сервер
-```bash
-python manage.py runserver
-```
-**После выполнения этих шагов, API будет доступно по [адресу](http://127.0.0.1:8000/)**
+**API Endpoints:**
+- `/admin/`: Django admin interface for managing the database.
+- `/api/v1/`: Base endpoint for the API.
+- `/api/v1/auth/token/`: Endpoint for obtaining JWT tokens.
+- `/api/v1/auth/signup/`: Endpoint for user registration.
+- `/api/v1/auth/users/me/`: Endpoint to view and update current user's information.
+- `/api/v1/categories/`: Endpoint for managing movie categories.
+- `/api/v1/genres/`: Endpoint for managing movie genres.
+- `/api/v1/titles/`: Endpoint for managing movie titles.
+- `/api/v1/titles/<title_id>/reviews/`: Endpoint for managing reviews for a specific movie.
+- `/api/v1/titles/<title_id>/reviews/<review_id>/comments/`: Endpoint for managing comments on a specific review.
 
-## Наполнение базы данных
-Для наполнения базы данных перейдите в директорию проекта Django, содержащую
-файл manage.py, и выполните следующую команду:
-```bash
-'python manage.py import_from_csv'
-```
-Полная инструкция api_yamdb/reviews/management/commands/import_from_csv.py
+## Documentation
 
-## Стек технологий
-Ваш проект на Django использует следующий стек технологий:
+[Documentation](http://127.0.0.1:8000/redoc/) contains detailed information on how the YaMDb API works. It explains the functionality of each endpoint and provides examples of API requests and responses. The documentation is presented in the Redoc format.
 
-1. **Django** (версия 3.2): Это основной веб-фреймворк на Python для разработки веб-приложений. Django предоставляет множество инструментов и функций для работы с веб-приложениями, включая маршрутизацию URL, работу с базой данных, обработку форм и многое другое.
+**Author:**
 
-2. **djangorestframework** (версия 3.12.4): Это расширение Django, которое обеспечивает возможность создания веб-сервисов RESTful API. Оно упрощает процесс создания API, обеспечивая сериализацию и десериализацию данных, аутентификацию, авторизацию и многое другое.
-
-3. **requests** (версия 2.26.0): Это библиотека Python, которая используется для отправки HTTP-запросов. Она предоставляет простой и удобный интерфейс для взаимодействия с внешними веб-ресурсами.
-
-4. **PyJWT** (версия 2.1.0): Это библиотека Python для работы с JSON Web Token (JWT). Она позволяет создавать, проверять и декодировать токены JWT, которые часто используются для аутентификации и обмена данными между веб-приложениями.
-
-5. **pytest** (версия 6.2.4): Это библиотека для написания и запуска тестов на Python. Она обеспечивает простой и удобный синтаксис для написания тестов и позволяет автоматизировать процесс тестирования вашего приложения.
-
-6. **pytest-django** (версия 4.4.0): Это расширение pytest, которое облегчает написание тестов для приложений Django. Оно предоставляет дополнительные функции и инструменты для тестирования Django-приложений.
-
-7. **pytest-pythonpath** (версия 0.7.3): Это расширение pytest, которое позволяет добавлять дополнительные пути к Python-пакетам при запуске тестов. Это может быть полезно, если ваш проект использует нестандартную структуру каталогов или требует доступа к дополнительным модулям.
-
-8. **django_filter** (версия 23.2): Это библиотека Django, которая обеспечивает поддержку фильтрации запросов к моделям Django. Она позволяет создавать и применять фильтры к запросам на основе параметров, передаваемых через URL или формы.
-
-9. **djangorestframework_simplejwt** (версия 5.2.2): Это простое расширение для Django REST Framework, которое предоставляет поддержку аутентификации с использованием JSON Web Token (JWT). Оно упрощает процесс аутентификации и авторизации в веб-приложениях, использующих Django REST Framework.
-
-# Ресурсы API
-[Документация](http://127.0.0.1:8000/redoc/)
-```bash
-Содержит документацию для API YaMDb. В документации описано, как должен работаь API. Документация представлена в формате Redoc.
-```
-# Формат данных
-### API возвращает данные в формате JSON.
-
-Пример успешного ответа:
-
-```bash
-{
-    "username": "user123",
-    "email": "user123@example.com"
-}
-```
-
-## Автор
-Авторы: 
-Roman Zemliakov [GitHub](https://github.com/zmlkf)
-
-Дари Шарапова [GitHub](https://github.com/sh-dar)
-
-Антон Серебряков [GitHub](https://github.com/AntonSerebryakov)
+- GitHub: [Roman Zemliakov](https://github.com/zmlkf)

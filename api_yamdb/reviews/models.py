@@ -10,39 +10,39 @@ from .validators import validate_username, validate_year
 
 class User(AbstractUser):
     """
-    Пользователь системы.
+    User of the system.
 
-    Расширяет стандартную модель пользователя Django.
+    Extends Django's default user model.
 
-    Поля:
-    - username: Имя пользователя
-    - email: Электронная почта
-    - bio: Биография
-    - role: Роль пользователя (админ, модератор или обычный пользователь)
+    Fields:
+    - username: User's username
+    - email: Email address
+    - bio: Biography
+    - role: User's role (admin, moderator, or regular user)
 
-    Методы:
-    - is_admin: Проверка, является ли пользователь администратором
-    - is_moderator: Проверка, является ли пользователь модератором
+    Methods:
+    - is_admin: Checks if the user is an administrator
+    - is_moderator: Checks if the user is a moderator
     """
     username = models.CharField(
-        'Имя пользователя',
+        'Username',
         max_length=MAX_LENGTH_USERNAME,
-        help_text=(f'Не более {MAX_LENGTH_USERNAME} символов. '
-                   f'Буквы, цифры и @/./+/-/'),
+        help_text=(f'No more than {MAX_LENGTH_USERNAME} characters. '
+                   f'Letters, numbers, and @/./+/-/'),
         unique=True,
         validators=(validate_username,),
     )
     email = models.EmailField(
-        'Электронная почта',
+        'Email',
         max_length=MAX_LENGTH_EMAIL,
         unique=True,
     )
     bio = models.TextField(
-        'Биография',
+        'Biography',
         blank=True,
     )
     role = models.CharField(
-        'Роль',
+        'Role',
         max_length=max(len(role) for role, _ in ROLE_CHOICES),
         choices=ROLE_CHOICES,
         default=USER
@@ -50,8 +50,8 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ('username',)
-        verbose_name = 'Пользователь'
-        verbose_name_plural = 'Пользователи'
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
         constraints = (
             models.UniqueConstraint(
                 fields=('username', 'email'), name='unique_user'),
@@ -72,17 +72,17 @@ class User(AbstractUser):
 
 class NamedEntity(models.Model):
     """
-    Абстрактный класс для именованных моделей.
+    Abstract class for named models.
 
-    Поля:
-    - name: Название
-    - slug: Слаг
+    Fields:
+    - name: Name
+    - slug: Slug
     """
 
     name = models.CharField(
-        'Название', max_length=MAX_LENGTH_NAME)
+        'Name', max_length=MAX_LENGTH_NAME)
     slug = models.SlugField(
-        'Слаг', unique=True, max_length=MAX_LENGTH_SLUG)
+        'Slug', unique=True, max_length=MAX_LENGTH_SLUG)
 
     class Meta:
         abstract = True
@@ -94,55 +94,55 @@ class NamedEntity(models.Model):
 
 class Genre(NamedEntity):
     """
-    Модель для жанров произведений.
+    Model for genres of works.
 
-    Наследуется от абстрактного класса NamedEntity.
+    Inherits from the abstract class NamedEntity.
     """
 
     class Meta(NamedEntity.Meta):
-        verbose_name = 'жанр'
-        verbose_name_plural = 'Жанры'
+        verbose_name = 'Genre'
+        verbose_name_plural = 'Genres'
 
 
 class Category(NamedEntity):
     """
-    Модель для категорий произведений.
+    Model for categories of works.
 
-    Наследуется от абстрактного класса NamedEntity.
+    Inherits from the abstract class NamedEntity.
     """
 
     class Meta(NamedEntity.Meta):
-        verbose_name = 'категория'
-        verbose_name_plural = 'Категории'
+        verbose_name = 'Category'
+        verbose_name_plural = 'Categories'
 
 
 class Title(models.Model):
     """
-    Модель для произведений.
+    Model for works.
 
-    Поля:
-    - name: Наименование
-    - year: Год публикации
-    - description: Описание
-    - genre: Жанры
-    - category: Категория
+    Fields:
+    - name: Name
+    - year: Publication year
+    - description: Description
+    - genre: Genres
+    - category: Category
     """
-    name = models.CharField('Наименование', max_length=MAX_LENGTH_NAME)
+    name = models.CharField('Name', max_length=MAX_LENGTH_NAME)
     year = models.SmallIntegerField(
-        'Год публикации', validators=(validate_year,))
-    description = models.TextField('Описание', blank=True, null=True)
-    genre = models.ManyToManyField(Genre, verbose_name='Жанр')
+        'Publication year', validators=(validate_year,))
+    description = models.TextField('Description', blank=True, null=True)
+    genre = models.ManyToManyField(Genre, verbose_name='Genre')
     category = models.ForeignKey(
         Category,
         on_delete=models.SET_NULL,
-        verbose_name='Категория',
+        verbose_name='Category',
         null=True
     )
 
     class Meta:
         default_related_name = 'titles'
-        verbose_name = 'произведение'
-        verbose_name_plural = 'Произведения'
+        verbose_name = 'Work'
+        verbose_name_plural = 'Works'
         ordering = ('name',)
 
     def __str__(self):
@@ -151,23 +151,23 @@ class Title(models.Model):
 
 class TextContent(models.Model):
     """
-    Абстрактный класс для текстовых моделей.
+    Abstract class for text-based models.
 
-    Поля:
-    - text: Текс
-    - author: Автор текста
-    - pub_date: Дата публикации
+    Fields:
+    - text: Text
+    - author: Text's author
+    - pub_date: Publication date
     """
 
-    text = models.TextField(verbose_name='Текст')
+    text = models.TextField(verbose_name='Text')
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор'
+        verbose_name='Author'
     )
     pub_date = models.DateTimeField(
         auto_now_add=True,
-        verbose_name='Дата публикации'
+        verbose_name='Publication date'
     )
 
     class Meta:
@@ -181,26 +181,26 @@ class TextContent(models.Model):
 
 class Review(TextContent):
     """
-    Модель для отзывов к произведениям.
-    Унаследована от абстрактного класса
+    Model for reviews of works.
+    Inherits from the abstract class
 
-    Поля:
-    - title: Произведение
-    - score: Оценка
+    Fields:
+    - title: Work
+    - score: Score
     """
     title = models.ForeignKey(
         Title,
         on_delete=models.CASCADE,
-        verbose_name='Произведение'
+        verbose_name='Work'
     )
     score = models.SmallIntegerField(
-        verbose_name='Оценка',
+        verbose_name='Score',
         validators=(MinValueValidator(MIN_SCORE), MaxValueValidator(MAX_SCORE))
     )
 
     class Meta(TextContent.Meta):
-        verbose_name = 'отзыв'
-        verbose_name_plural = 'Отзывы'
+        verbose_name = 'Review'
+        verbose_name_plural = 'Reviews'
         constraints = (
             models.UniqueConstraint(
                 fields=('title', 'author'), name='unique_review'),
@@ -209,18 +209,18 @@ class Review(TextContent):
 
 class Comment(TextContent):
     """
-    Модель для представления комментариев к отзывам о произведениях.
-    Унаследована от абстрактного класса
+    Model representing comments on reviews of works.
+    Inherits from the abstract class
 
-    Поля:
-    - review: Отзыв к произведению
+    Fields:
+    - review: Review of the work
     """
     review = models.ForeignKey(
         Review,
         on_delete=models.CASCADE,
-        verbose_name='Отзыв к произведению'
+        verbose_name='Review of the work'
     )
 
     class Meta(TextContent.Meta):
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
+        verbose_name = 'Comment'
+        verbose_name_plural = 'Comments'

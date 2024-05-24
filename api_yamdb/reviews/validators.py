@@ -10,10 +10,10 @@ BANNED_USERNAME = (ME_URL,)
 
 def validate_username(username):
     if username in BANNED_USERNAME:
-        raise ValidationError(f'Недопустимое имя пользователя: "{username}".')
+        raise ValidationError(f'Invalid username: "{username}".')
     invalid_chars = re.sub(r'[\w.@+-]', '', username)
     if invalid_chars:
-        raise ValidationError(f'Недопустимые символы: {invalid_chars}')
+        raise ValidationError(f'Invalid characters: {invalid_chars}')
     return username
 
 
@@ -21,6 +21,6 @@ def validate_year(year):
     current_year = timezone.now().year
     if year > current_year:
         raise ValidationError(
-            f'Указанный год {year} не можеть быть '
-            f'больше текущего {current_year}')
+            f'The specified year {year} cannot be '
+            f'greater than the current year {current_year}')
     return year

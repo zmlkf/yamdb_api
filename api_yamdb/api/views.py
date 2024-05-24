@@ -10,7 +10,6 @@ from rest_framework import (decorators, filters, mixins, pagination,
 from rest_framework.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
 
-
 from api_yamdb.settings import EMAIL_ADMIN, ME_URL
 from reviews.models import Category, Genre, Review, Title
 from .filters import TitleFilter
@@ -28,7 +27,7 @@ class CategoryGenreBaseViewSet(mixins.CreateModelMixin,
                                mixins.ListModelMixin,
                                mixins.DestroyModelMixin,
                                viewsets.GenericViewSet):
-    """GET, POST и DELETE запросы."""
+    """GET, POST, and DELETE requests."""
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
@@ -38,13 +37,13 @@ class CategoryGenreBaseViewSet(mixins.CreateModelMixin,
 
 class CategoryViewSet(CategoryGenreBaseViewSet):
     """
-    Вьюсет для работы с категориями.
+    ViewSet for working with categories.
 
-    Позволяет создавать, просматривать и удалять категории.
+    Allows creating, viewing, and deleting categories.
 
     Attributes:
-    - queryset: Запрос для получения всех категорий.
-    - serializer_class: Сериализатор для категорий.
+    - queryset: Query to retrieve all categories.
+    - serializer_class: Serializer for categories.
     """
 
     queryset = Category.objects.all()
@@ -53,13 +52,13 @@ class CategoryViewSet(CategoryGenreBaseViewSet):
 
 class GenreViewSet(CategoryGenreBaseViewSet):
     """
-    Вьюсет для работы с жанрами.
+    ViewSet for working with genres.
 
-    Позволяет создавать, просматривать и удалять жанры.
+    Allows creating, viewing, and deleting genres.
 
     Attributes:
-    - queryset: Запрос для получения всех жанров.
-    - serializer_class: Сериализатор для жанров.
+    - queryset: Query to retrieve all genres.
+    - serializer_class: Serializer for genres.
     """
 
     queryset = Genre.objects.all()
@@ -68,18 +67,18 @@ class GenreViewSet(CategoryGenreBaseViewSet):
 
 class TitleViewSet(viewsets.ModelViewSet):
     """
-    Вьюсет для работы с произведениями.
+    ViewSet for working with titles.
 
-    Позволяет создавать, просматривать, обновлять и удалять произведения.
-    Расчет средней оценки произведения производится автоматически.
+    Allows creating, viewing, updating, and deleting titles.
+    Automatically calculates the average rating of titles.
 
     Attributes:
-    - queryset: Запрос для получения всех произведений.
-    - permission_classes: Кортеж классов разрешений.
-    - filter_backends: Кортеж фильтров для обработки запросов.
-    - filterset_class: Класс фильтров для произведений.
-    - http_method_names: Кортеж HTTP методов, поддерживаемых вьюсетом.
-    - pagination_class: Пагинация
+    - queryset: Query to retrieve all titles.
+    - permission_classes: Tuple of permission classes.
+    - filter_backends: Tuple of filters to process requests.
+    - filterset_class: Filter class for titles.
+    - http_method_names: Tuple of HTTP methods supported by the viewset.
+    - pagination_class: Pagination.
     """
 
     queryset = Title.objects.annotate(
@@ -95,7 +94,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         """
-        Определяет класс сериализатора в зависимости от метода запроса.
+        Determines the serializer class based on the request method.
         """
         if self.request.method in permissions.SAFE_METHODS:
             return TitleViewSerializer
@@ -104,19 +103,19 @@ class TitleViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     """
-    Вьюсет для работы с пользователями.
+    ViewSet for working with users.
 
-    Позволяет создавать, просматривать, обновлять и удалять пользователей.
-    Пользователь может получить и изменить свои данные через /users/me/.
+    Allows creating, viewing, updating, and deleting users.
+    Users can get and modify their data via /users/me/.
 
     Attributes:
-    - queryset: Запрос для получения всех пользователей.
-    - serializer_class: Сериализатор для пользователей.
-    - permission_classes: Кортеж классов разрешений.
-    - lookup_field: Поле для поиска пользователей.
-    - filter_backends: Кортеж фильтров для обработки запросов.
-    - search_fields: Кортеж полей для поиска пользователей.
-    - http_method_names: Кортеж HTTP методов, поддерживаемых вьюсетом.
+    - queryset: Query to retrieve all users.
+    - serializer_class: Serializer for users.
+    - permission_classes: Tuple of permission classes.
+    - lookup_field: Field for searching users.
+    - filter_backends: Tuple of filters to process requests.
+    - search_fields: Tuple of fields for searching users.
+    - http_method_names: Tuple of HTTP methods supported by the viewset.
     """
 
     queryset = User.objects.all()
@@ -133,7 +132,7 @@ class UserViewSet(viewsets.ModelViewSet):
                        detail=False,)
     def get_patch_user_info(self, request):
         """
-        Получает или обновляет информацию о текущем пользователе.
+        Retrieves or updates information about the current user.
         """
         if request.method == 'GET':
             serializer = UserSerializer(request.user)
@@ -148,17 +147,19 @@ class UserViewSet(viewsets.ModelViewSet):
 @decorators.api_view(["POST"])
 def api_sign_up(request):
     """
-    Регистрация пользователя.
-    Создает нового пользователя на основе предоставленных данных.
-    Отправляет код подтверждения на указанный email пользователя.
+    User registration.
+    Creates a new user based on the provided data.
+    Sends a confirmation code to the user's email.
+
     Args:
-    - request: Объект запроса.
+    - request: Request object.
+
     Returns:
-    - response.Response: Объект ответа, содержащий
-    данные о регистрации пользователя.
+    - response.Response: Response object containing
+    user registration data.
 
     Raises:
-    - ValidationError: Если данные в запросе неверные.
+    - ValidationError: If the data in the request is invalid.
     """
     serializer = LoginSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -170,10 +171,10 @@ def api_sign_up(request):
         )
     except IntegrityError:
         raise ValidationError(
-            'Пользователь с таким username или email уже существует')
+            'A user with this username or email already exists')
     send_mail(
-        'Код для получения токена к API',
-        f'Код подтверждения {default_token_generator.make_token(user)}',
+        'Confirmation code to access the API',
+        f'Confirmation code: {default_token_generator.make_token(user)}',
         f'{EMAIL_ADMIN}',
         [user.email],
     )
@@ -183,15 +184,18 @@ def api_sign_up(request):
 @decorators.api_view(["POST"])
 def get_api_token(request):
     """
-    Получение API токена.
-    Проверяет подтверждающий код пользователя и выдает
-    ему API токен для аутентификации.
+    Get API token.
+    Verifies the user's confirmation code and issues
+    an API token for authentication.
+
     Args:
-    - request: Объект запроса.
+    - request: Request object.
+
     Returns:
-    - response.Response: Объект ответа, содержащий API токен.
+    - response.Response: Response object containing the API token.
+
     Raises:
-    - ValidationError: Если указан неверный код подтверждения.
+    - ValidationError: If an incorrect confirmation code is specified.
     """
     serializer = TokenSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -203,24 +207,24 @@ def get_api_token(request):
         api_token = RefreshToken.for_user(user).access_token
         return response.Response(
             {'token': str(api_token)}, status=status.HTTP_200_OK)
-    raise ValidationError('Указан неверный код подтверждения')
+    raise ValidationError('Incorrect confirmation code')
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """
-    API для работы с отзывами к произведениям.
-    Позволяет просматривать, создавать, обновлять и удалять отзывы.
+    API for working with reviews for titles.
+    Allows viewing, creating, updating, and deleting reviews.
 
     Methods:
-    - get_title(): Получает произведение, к которому относится отзыв.
-    - get_queryset(): Получает queryset отзывов для конкретного произведения.
-    - perform_create: Создает новый отзыв.
+    - get_title(): Get the title to which the review belongs.
+    - get_queryset(): Get the reviews queryset for a specific title.
+    - perform_create: Create a new review.
 
     Attributes:
-    - serializer_class: Сериализатор для отзывов.
-    - permission_classes: Кортеж классов разрешений для доступа к отзывам.
-    - http_method_names: Список разрешенных HTTP методов.
-    - pagination_class: Пагинация
+    - serializer_class: Serializer for reviews.
+    - permission_classes: Tuple of permission classes for accessing reviews.
+    - http_method_names: List of allowed HTTP methods.
+    - pagination_class: Pagination.
     """
 
     serializer_class = ReviewSerializer
@@ -241,20 +245,20 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
 class CommentViewSet(viewsets.ModelViewSet):
     """
-    API для работы с комментариями к отзывам.
+    API for working with comments for reviews.
 
-    Позволяет просматривать, создавать, обновлять и удалять комментарии.
+    Allows viewing, creating, updating, and deleting comments.
 
     Methods:
-    - get_review(): Получает отзыв, к которому относится комментарий.
-    - get_queryset(): Получает queryset комментариев для конкретного отзыва.
-    - perform_create(): Создает новый комментарий.
+    - get_review(): Get the review to which the comment belongs.
+    - get_queryset(): Get the comments queryset for a specific review.
+    - perform_create(): Create a new comment.
 
     Attributes:
-    - queryset: QuerySet всех комментариев.
-    - serializer_class: Сериализатор для комментариев.
-    - permission_classes: Кортеж классов разрешений для доступа к комментариям.
-    - http_method_names: Список разрешенных HTTP методов.
+    - queryset: QuerySet of all comments.
+    - serializer_class: Serializer for comments.
+    - permission_classes: Tuple of permission classes for accessing comments.
+    - http_method_names: List of allowed HTTP methods.
     """
 
     serializer_class = CommentSerializer

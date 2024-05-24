@@ -2,9 +2,9 @@ USER = 'user'
 MODERATOR = 'moderator'
 ADMIN = 'admin'
 ROLE_CHOICES = (
-    (USER, 'пользователь'),
-    (MODERATOR, 'модератор'),
-    (ADMIN, 'администратор')
+    (USER, 'user'),
+    (MODERATOR, 'moderator'),
+    (ADMIN, 'administrator')
 )
 
 TEXT_LENGTH = 50
